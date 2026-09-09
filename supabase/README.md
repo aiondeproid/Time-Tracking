@@ -48,7 +48,19 @@ npx supabase db reset  # migrations/ と seed.sql を再適用
 
 ## RLS の要点
 
-- `attendance`: `anon` ロールに SELECT / INSERT / UPDATE / DELETE を許可（アプリはログイン不要）。
-- `members`: `anon` は SELECT のみ。追加・更新・アーカイブはサーバー側の Route Handler が
-  `SUPABASE_SERVICE_ROLE_KEY`（RLS バイパス）で実行する。
+- `attendance`: `anon` ロールに SELECT / INSERT / UPDATE / DELETE を許可（勤怠入力はログイン不要）。
+- `members`: `anon` は SELECT のみ。追加・更新・アーカイブはサーバー側の Server Action /
+  Route Handler が `SUPABASE_SERVICE_ROLE_KEY`（RLS バイパス）で実行する。
 - アプリ全体の保護は Next.js の `proxy.ts`（サイト共通合言葉ゲート）が担う。
+  「名前の管理」`/members` はさらに Supabase Auth のログイン必須（`proxy.ts` と各
+  Server Action / Route Handler で検証）。
+
+## Supabase Auth（「名前の管理」のログイン）
+
+スキーマ変更・マイグレーションは不要。ダッシュボードで確認する項目:
+
+- **Authentication → Sign In / Providers → Email**: 有効（既定）。
+- **Authentication → Sign-ups → Allow new users to sign up**: 無効で可。ユーザー作成は
+  サーバー側が `service_role`（`admin.createUser`、`email_confirm: true`）で行う。
+  誰が登録できるかは招待コード `SIGNUP_CODE`（サーバー環境変数）で制御する。
+- 確認メール・SMTP は不要。

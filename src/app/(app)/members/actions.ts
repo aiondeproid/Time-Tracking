@@ -1,16 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { z } from "zod";
 
-import {
-  ADMIN_COOKIE,
-  createAdminToken,
-  isAdminConfigured,
-  isValidAdminPasscode,
-  verifyAdminToken,
-} from "@/lib/admin";
+import { getSessionUser } from "@/lib/auth";
 import {
   insertMember,
   moveMember,
@@ -24,49 +17,15 @@ export type ActionState = { ok: boolean; error: string | null };
 const OK: ActionState = { ok: true, error: null };
 const fail = (error: string): ActionState => ({ ok: false, error });
 
-async function requireAdmin(): Promise<boolean> {
-  const store = await cookies();
-  return verifyAdminToken(store.get(ADMIN_COOKIE)?.value);
+/** ログイン済みか（外周はサイト共通合言葉ゲート、ここはログイン必須）。 */
+async function requireUser(): Promise<boolean> {
+  return (await getSessionUser()) !== null;
 }
 
 function revalidateAll() {
   revalidatePath("/members");
   revalidatePath("/attendance");
   revalidatePath("/list");
-}
-
-/** 管理用合言葉を検証し、管理セッション Cookie を発行する。 */
-export async function unlockAdminAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const passcode = String(formData.get("passcode") ?? "");
-  if (!isAdminConfigured()) {
-    return fail("サーバー側で ADMIN_PASSCODE が設定されていません。");
-  }
-  if (passcode.length === 0) return fail("合言葉を入力してください。");
-  if (!isValidAdminPasscode(passcode)) return fail("合言葉が違います。");
-
-  const token = createAdminToken();
-  if (!token) return fail("サーバー側で ADMIN_PASSCODE が設定されていません。");
-
-  const store = await cookies();
-  store.set(ADMIN_COOKIE, token.value, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: token.maxAge,
-  });
-  revalidatePath("/members");
-  return OK;
-}
-
-/** 管理セッションを終了する（フォームの action 用なので戻り値なし）。 */
-export async function lockAdminAction(): Promise<void> {
-  const store = await cookies();
-  store.delete(ADMIN_COOKIE);
-  revalidatePath("/members");
 }
 
 const nameField = z
@@ -83,7 +42,7 @@ export async function addMemberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await requireAdmin())) return fail("管理用合言葉の認証が必要です。");
+  if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
     .object({ name: nameField, sortOrder: sortOrderField })
     .safeParse({
@@ -105,7 +64,7 @@ export async function renameMemberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await requireAdmin())) return fail("管理用合言葉の認証が必要です。");
+  if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
     .object({ id: z.uuid(), name: nameField })
     .safeParse({ id: formData.get("id"), name: formData.get("name") });
@@ -124,7 +83,7 @@ export async function setSortOrderAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await requireAdmin())) return fail("管理用合言葉の認証が必要です。");
+  if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
     .object({ id: z.uuid(), sortOrder: sortOrderField })
     .safeParse({ id: formData.get("id"), sortOrder: formData.get("sortOrder") });
@@ -143,7 +102,7 @@ export async function moveMemberAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await requireAdmin())) return fail("管理用合言葉の認証が必要です。");
+  if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
     .object({ id: z.uuid(), direction: z.enum(["up", "down"]) })
     .safeParse({
@@ -165,7 +124,7 @@ export async function setMemberActiveAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  if (!(await requireAdmin())) return fail("管理用合言葉の認証が必要です。");
+  if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
     .object({
       id: z.uuid(),

@@ -2,11 +2,11 @@
 
 import { useActionState, useState } from "react";
 
+import { logoutAction } from "@/lib/auth-actions";
 import type { Member } from "@/lib/types";
 
 import {
   addMemberAction,
-  lockAdminAction,
   moveMemberAction,
   renameMemberAction,
   setMemberActiveAction,
@@ -17,7 +17,13 @@ import { ImportPanel } from "./import-panel";
 
 const INITIAL: ActionState = { ok: false, error: null };
 
-export function MemberAdmin({ members }: { members: Member[] }) {
+export function MemberAdmin({
+  members,
+  userEmail,
+}: {
+  members: Member[];
+  userEmail: string | null;
+}) {
   const [addState, addAction, addPending] = useActionState(
     addMemberAction,
     INITIAL,
@@ -27,13 +33,15 @@ export function MemberAdmin({ members }: { members: Member[] }) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-        <span>管理用ロックは解除済みです（{activeCount} 名がアクティブ）。</span>
-        <form action={lockAdminAction}>
+        <span>
+          {userEmail ?? "ログイン中"} でログイン中（{activeCount} 名がアクティブ）。
+        </span>
+        <form action={logoutAction}>
           <button
             type="submit"
             className="rounded border border-amber-400 px-2 py-1 font-medium hover:bg-amber-200 dark:border-amber-700 dark:hover:bg-amber-900/50"
           >
-            ロックする
+            ログアウト
           </button>
         </form>
       </div>

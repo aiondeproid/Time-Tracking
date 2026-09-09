@@ -1,6 +1,4 @@
-import { cookies } from "next/headers";
-
-import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin";
+import { getSessionUser } from "@/lib/auth";
 import { fetchAllMembers } from "@/lib/attendance";
 import { applyImportPlan } from "@/lib/members";
 import { planImport } from "@/lib/members-import";
@@ -15,13 +13,12 @@ const MAX_BYTES = 2 * 1024 * 1024;
  * 名前リストのファイル取り込み。`mode=preview` で計画（追加 n / 更新 m /
  * スキップ k）を返し、`mode=commit` で反映する。commit も毎回ファイルを
  * 解析し直すので、プレビュー結果の改ざんは効かない。
- * 管理用合言葉（ADMIN_COOKIE）必須。外周はサイト共通合言葉ゲート。
+ * ログイン必須。外周はサイト共通合言葉ゲート。
  */
 export async function POST(request: Request) {
-  const store = await cookies();
-  if (!verifyAdminToken(store.get(ADMIN_COOKIE)?.value)) {
+  if (!(await getSessionUser())) {
     return Response.json(
-      { ok: false, error: "管理用合言葉の認証が必要です。" },
+      { ok: false, error: "ログインが必要です。" },
       { status: 401 },
     );
   }

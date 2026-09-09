@@ -6,13 +6,7 @@ import type { RowView } from "@/lib/attendance-view";
 import { formatElapsed } from "@/lib/time";
 import { useNow } from "@/lib/use-now";
 
-import {
-  clockOutAction,
-  deleteAttendanceAction,
-  updateAttendanceAction,
-  type ActionState,
-} from "@/lib/attendance-actions";
-import { EditFields } from "@/components/edit-fields";
+import { clockOutAction, type ActionState } from "@/lib/attendance-actions";
 
 import { ClockOutFields } from "./clock-out-fields";
 
@@ -38,28 +32,17 @@ export function RecordList({ rows }: { rows: RowView[] }) {
   );
 }
 
-type Mode = "view" | "clockout" | "edit";
+type Mode = "view" | "clockout";
 
 function RecordItem({ row }: { row: RowView }) {
   const [mode, setMode] = useState<Mode>("view");
 
   const [outState, outAction, outPending] = useActionState(clockOutAction, INITIAL);
-  const [editState, editAction, editPending] = useActionState(
-    updateAttendanceAction,
-    INITIAL,
-  );
-  const [delState, delAction, delPending] = useActionState(
-    deleteAttendanceAction,
-    INITIAL,
-  );
 
-  // 退勤・編集が成功したら表示モードへ戻す（成功状態ごとに 1 回だけ）。
+  // 退勤が成功したら表示モードへ戻す（成功状態ごとに 1 回だけ）。
   const [handled, setHandled] = useState<ActionState | null>(null);
   if (outState.ok && outState !== handled) {
     setHandled(outState);
-    setMode("view");
-  } else if (editState.ok && editState !== handled) {
-    setHandled(editState);
     setMode("view");
   }
 
@@ -88,48 +71,16 @@ function RecordItem({ row }: { row: RowView }) {
         )}
       </div>
 
-      {mode === "view" && (
+      {mode === "view" && row.isOpen && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {row.isOpen && (
-            <button
-              type="button"
-              onClick={() => setMode("clockout")}
-              className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
-            >
-              退勤
-            </button>
-          )}
           <button
             type="button"
-            onClick={() => setMode("edit")}
-            className="rounded-md border border-black/15 px-3 py-1.5 text-xs dark:border-white/20"
+            onClick={() => setMode("clockout")}
+            className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
           >
-            編集
+            退勤
           </button>
-          <form
-            action={delAction}
-            onSubmit={(e) => {
-              if (!confirm("この記録を削除します。よろしいですか？")) {
-                e.preventDefault();
-              }
-            }}
-          >
-            <input type="hidden" name="id" value={row.id} />
-            <button
-              type="submit"
-              disabled={delPending}
-              className="rounded-md border border-red-300 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 disabled:opacity-60 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-            >
-              {delPending ? "削除中…" : "削除"}
-            </button>
-          </form>
         </div>
-      )}
-
-      {delState.error && (
-        <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
-          {delState.error}
-        </p>
       )}
 
       {mode === "clockout" && (
@@ -138,16 +89,6 @@ function RecordItem({ row }: { row: RowView }) {
           action={outAction}
           pending={outPending}
           error={outState.error}
-          onCancel={() => setMode("view")}
-        />
-      )}
-
-      {mode === "edit" && (
-        <EditFields
-          row={row}
-          action={editAction}
-          pending={editPending}
-          error={editState.error}
           onCancel={() => setMode("view")}
         />
       )}

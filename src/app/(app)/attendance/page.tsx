@@ -49,7 +49,11 @@ export default async function AttendancePage(props: PageProps<"/attendance">) {
         </p>
       ) : (
         <>
-          <MemberSelect members={members} selectedId={selected?.id ?? null} />
+          <MemberSelect
+            members={members}
+            selectedId={selected?.id ?? null}
+            selectedName={selected?.name ?? null}
+          />
 
           {selected ? (
             <>

@@ -148,15 +148,13 @@ function ClockInFields({
   const now = useMemo(() => nowDateTimeInput(), []);
   const [inDate, setInDate] = useState(now.date);
   const [inTime, setInTime] = useState(now.time);
-  // null = 自動（出勤時刻から算出）、文字列 = 手動指定。
-  const [manualWorkDate, setManualWorkDate] = useState<string | null>(null);
 
-  const autoWorkDate = useMemo(() => {
+  // 勤務日は出勤日時から自動で決まる（深夜 4:00 より前の出勤は前日扱い）。
+  // 手動指定はできない。修正が必要なら勤怠一覧の編集画面で行う。
+  const workDate = useMemo(() => {
     const iso = dateTimeInputToIso(inDate, inTime);
     return iso ? resolveWorkDate(iso) : todayWorkDate;
   }, [inDate, inTime, todayWorkDate]);
-  const workDate = manualWorkDate ?? autoWorkDate;
-  const wdAuto = manualWorkDate === null;
 
   return (
     <form
@@ -165,6 +163,7 @@ function ClockInFields({
     >
       <p className="text-sm font-semibold">出勤の記録</p>
       <input type="hidden" name="memberId" value={memberId} />
+      <input type="hidden" name="workDate" value={workDate} />
 
       <fieldset className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-medium">
@@ -191,36 +190,13 @@ function ClockInFields({
         </label>
       </fieldset>
 
-      <label className="flex flex-col gap-1 text-xs font-medium">
-        <span>
-          勤務日{" "}
-          <span className="font-normal text-zinc-500">
-            （{workDate && weekdayJa(workDate)}・{wdAuto ? "自動" : "手動"}）
-          </span>
-        </span>
-        <span className="flex items-center gap-2">
-          <input
-            type="date"
-            name="workDate"
-            value={workDate}
-            onChange={(e) => setManualWorkDate(e.target.value)}
-            required
-            className="rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
-          />
-          {!wdAuto && (
-            <button
-              type="button"
-              onClick={() => setManualWorkDate(null)}
-              className="text-xs text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
-            >
-              自動に戻す
-            </button>
-          )}
-        </span>
-        <span className="text-xs font-normal text-zinc-500">
-          深夜 4:00 より前の出勤は前日の勤務日になります。
-        </span>
-      </label>
+      <p className="text-xs text-zinc-500">
+        勤務日は{" "}
+        <span className="font-medium tabular-nums text-zinc-700 dark:text-zinc-300">
+          {workDate}（{weekdayJa(workDate)}）
+        </span>{" "}
+        として自動で記録されます（深夜 4:00 より前の出勤は前日扱い）。
+      </p>
 
       <label className="flex flex-col gap-1 text-xs font-medium">
         備考（任意）
