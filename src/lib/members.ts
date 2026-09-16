@@ -111,19 +111,22 @@ export async function applyImportPlan(
   const sb = createServiceRoleClient();
 
   if (plan.add.length > 0) {
-    const { error } = await sb
-      .from("members")
-      .insert(
-        plan.add.map((a) => ({ name: a.name, sort_order: a.sortOrder })),
-      );
+    const { error } = await sb.from("members").insert(
+      plan.add.map((a) => ({
+        name: a.name,
+        reading: a.reading,
+        sort_order: a.sortOrder,
+      })),
+    );
     if (error) throw friendly(error);
   }
 
   for (const u of plan.update) {
-    const patch: { sort_order: number; active?: boolean } = {
+    const patch: { sort_order: number; active?: boolean; reading?: string } = {
       sort_order: u.sortOrder,
     };
     if (u.reactivate) patch.active = true;
+    if (u.reading !== undefined) patch.reading = u.reading;
     const { error } = await sb.from("members").update(patch).eq("id", u.id);
     if (error) throw friendly(error);
   }

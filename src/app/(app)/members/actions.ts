@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { toHiragana } from "wanakana";
 
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -12,6 +11,7 @@ import {
   updateMemberName,
   updateMemberSortOrder,
 } from "@/lib/members";
+import { isHiraganaReading, normalizeReading } from "@/lib/reading";
 
 export type ActionState = { ok: boolean; error: string | null };
 
@@ -42,9 +42,9 @@ const readingField = z
   .string()
   .trim()
   .max(100, "読み仮名は 100 文字以内で入力してください")
-  .transform((s) => toHiragana(s.normalize("NFKC")))
+  .transform((s) => normalizeReading(s))
   .refine(
-    (s) => s === "" || /^[ぁ-んー\s・]*$/.test(s),
+    isHiraganaReading,
     "読み仮名はひらがな（またはカタカナ）で入力してください",
   );
 const sortOrderField = z.coerce

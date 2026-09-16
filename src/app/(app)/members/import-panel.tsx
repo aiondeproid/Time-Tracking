@@ -81,10 +81,12 @@ export function ImportPanel() {
     <section className="flex flex-col gap-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
       <h2 className="text-sm font-semibold">ファイルから取り込み（.xlsx / .csv）</h2>
       <p className="text-xs leading-relaxed text-zinc-500">
-        「名前」「表示順」の 2 列。名前をキーに <b>追加 + 更新</b>
-        （ファイルに無い名前は変更しません）。ヘッダー行から列名を認識し、
-        無ければ 1 列目＝名前・2 列目＝表示順として扱います。CSV の文字コード
-        （UTF-8 / Shift_JIS）は自動判定します。
+        「名前」「読み仮名」「表示順」の列。読み仮名は任意で、勤怠入力の名前検索を
+        ひらがな・カタカナ・ローマ字でも予測できるようにするためのものです（列が無い
+        ファイルを取り込んでも、既存メンバーの読み仮名は変更しません）。名前をキーに{" "}
+        <b>追加 + 更新</b>（ファイルに無い名前は変更しません）。ヘッダー行から列名を
+        認識し、無ければ列数から 名前・表示順（2 列）/ 名前・読み仮名・表示順（3 列）
+        を判定します。CSV の文字コード（UTF-8 / Shift_JIS）は自動判定します。
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
