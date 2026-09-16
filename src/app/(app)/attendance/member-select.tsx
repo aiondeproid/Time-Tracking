@@ -7,7 +7,6 @@ import { searchMembers } from "@/lib/member-search";
 import type { Member } from "@/lib/types";
 
 const STORAGE_KEY = "kintai.selectedMember";
-const MAX_SUGGESTIONS = 8;
 
 export function MemberSelect({
   members,
@@ -33,7 +32,7 @@ export function MemberSelect({
   const inputValue = open ? query : (selectedName ?? "");
 
   const matches = useMemo(
-    () => searchMembers(members, query).slice(0, MAX_SUGGESTIONS),
+    () => searchMembers(members, query),
     [members, query],
   );
 
