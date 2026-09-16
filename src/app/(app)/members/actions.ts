@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { toHiragana } from "wanakana";
 
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -33,6 +34,19 @@ const nameField = z
   .trim()
   .min(1, "名前を入力してください")
   .max(100, "名前は 100 文字以内で入力してください");
+/**
+ * 読み仮名（任意）。カタカナ/全角英数で入力されてもひらがなに正規化して保存する。
+ * 検索側（member-select）はこの正規化を前提に照合する。
+ */
+const readingField = z
+  .string()
+  .trim()
+  .max(100, "読み仮名は 100 文字以内で入力してください")
+  .transform((s) => toHiragana(s.normalize("NFKC")))
+  .refine(
+    (s) => s === "" || /^[ぁ-んー\s・]*$/.test(s),
+    "読み仮名はひらがな（またはカタカナ）で入力してください",
+  );
 const sortOrderField = z.coerce
   .number()
   .refine((n) => Number.isFinite(n), "表示順は数値で入力してください")
@@ -44,15 +58,16 @@ export async function addMemberAction(
 ): Promise<ActionState> {
   if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
-    .object({ name: nameField, sortOrder: sortOrderField })
+    .object({ name: nameField, reading: readingField, sortOrder: sortOrderField })
     .safeParse({
       name: formData.get("name"),
+      reading: formData.get("reading") || "",
       sortOrder: formData.get("sortOrder") || 0,
     });
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   try {
-    await insertMember(parsed.data.name, parsed.data.sortOrder);
+    await insertMember(parsed.data.name, parsed.data.reading, parsed.data.sortOrder);
   } catch (e) {
     return fail(e instanceof Error ? e.message : "追加に失敗しました");
   }
@@ -66,12 +81,16 @@ export async function renameMemberAction(
 ): Promise<ActionState> {
   if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
-    .object({ id: z.uuid(), name: nameField })
-    .safeParse({ id: formData.get("id"), name: formData.get("name") });
+    .object({ id: z.uuid(), name: nameField, reading: readingField })
+    .safeParse({
+      id: formData.get("id"),
+      name: formData.get("name"),
+      reading: formData.get("reading") || "",
+    });
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   try {
-    await updateMemberName(parsed.data.id, parsed.data.name);
+    await updateMemberName(parsed.data.id, parsed.data.name, parsed.data.reading);
   } catch (e) {
     return fail(e instanceof Error ? e.message : "更新に失敗しました");
   }

@@ -62,6 +62,15 @@ export function MemberAdmin({
             />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">
+            読み仮名（ひらがな・任意）
+            <input
+              name="reading"
+              maxLength={100}
+              placeholder="やまだ たろう"
+              className="rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
             表示順
             <input
               name="sortOrder"
@@ -198,6 +207,13 @@ function MemberRow({
               autoFocus
               className="rounded-md border border-black/15 bg-white px-2 py-1 text-sm dark:border-white/20 dark:bg-zinc-900"
             />
+            <input
+              name="reading"
+              defaultValue={member.reading}
+              maxLength={100}
+              placeholder="読み仮名（ひらがな）"
+              className="rounded-md border border-black/15 bg-white px-2 py-1 text-sm dark:border-white/20 dark:bg-zinc-900"
+            />
             <button
               type="submit"
               disabled={renamePending}
@@ -216,6 +232,11 @@ function MemberRow({
         ) : (
           <span className="min-w-[8rem] font-medium">
             {member.name}
+            {member.reading && (
+              <span className="ml-1.5 font-normal text-zinc-500 dark:text-zinc-400">
+                （{member.reading}）
+              </span>
+            )}
             {!member.active && (
               <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-normal text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                 アーカイブ

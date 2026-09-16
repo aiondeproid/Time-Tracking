@@ -13,21 +13,29 @@ function friendly(error: PgError): Error {
 
 export async function insertMember(
   name: string,
+  reading: string,
   sortOrder: number,
 ): Promise<Member> {
   const sb = createServiceRoleClient();
   const { data, error } = await sb
     .from("members")
-    .insert({ name, sort_order: sortOrder })
+    .insert({ name, reading, sort_order: sortOrder })
     .select()
     .single();
   if (error) throw friendly(error);
   return data as Member;
 }
 
-export async function updateMemberName(id: string, name: string): Promise<void> {
+export async function updateMemberName(
+  id: string,
+  name: string,
+  reading: string,
+): Promise<void> {
   const sb = createServiceRoleClient();
-  const { error } = await sb.from("members").update({ name }).eq("id", id);
+  const { error } = await sb
+    .from("members")
+    .update({ name, reading })
+    .eq("id", id);
   if (error) throw friendly(error);
 }
 

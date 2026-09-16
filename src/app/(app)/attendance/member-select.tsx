@@ -3,20 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { searchMembers } from "@/lib/member-search";
 import type { Member } from "@/lib/types";
 
 const STORAGE_KEY = "kintai.selectedMember";
 const MAX_SUGGESTIONS = 8;
-
-/** 全角/半角を揃え、カタカナをひらがなに畳んで部分一致しやすくする。 */
-function foldForSearch(s: string): string {
-  return s
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[ァ-ヶ]/g, (c) =>
-      String.fromCharCode(c.charCodeAt(0) - 0x60),
-    );
-}
 
 export function MemberSelect({
   members,
@@ -41,13 +32,10 @@ export function MemberSelect({
 
   const inputValue = open ? query : (selectedName ?? "");
 
-  const matches = useMemo(() => {
-    const q = foldForSearch(query.trim());
-    const hits = q
-      ? members.filter((m) => foldForSearch(m.name).includes(q))
-      : members;
-    return hits.slice(0, MAX_SUGGESTIONS);
-  }, [members, query]);
+  const matches = useMemo(
+    () => searchMembers(members, query).slice(0, MAX_SUGGESTIONS),
+    [members, query],
+  );
 
   // activeIndex を候補数に収める。
   const active =
