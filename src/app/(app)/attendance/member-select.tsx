@@ -40,6 +40,21 @@ export function MemberSelect({
   const active =
     matches.length === 0 ? -1 : Math.min(activeIndex, matches.length - 1);
 
+  // リスト外へのポインタ操作（クリック/タップ）で閉じる。
+  // input の blur ではなくこちらを正とすることで、リスト内でのスクロール操作
+  // （タッチのドラッグ）が blur によって中断されないようにする。
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(e: PointerEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
   // 未選択なら、前回選んだメンバーを復元する（存在する場合のみ）。
   useEffect(() => {
     if (selectedId) return;
@@ -131,9 +146,13 @@ export function MemberSelect({
           }}
           onFocus={startEditing}
           onBlur={(e) => {
-            // リスト内のクリックでは閉じない（commit 側で閉じる）。
-            if (rootRef.current?.contains(e.relatedTarget as Node)) return;
-            stopEditing();
+            // フォーカス移動先が明確に分かる場合（Tab 移動など）のみここで閉じる。
+            // タッチ操作では relatedTarget が取れず判定できないため、
+            // その場合は上の outside-pointerdown 側の判定に任せる。
+            const related = e.relatedTarget as Node | null;
+            if (related && !rootRef.current?.contains(related)) {
+              stopEditing();
+            }
           }}
           onKeyDown={onKeyDown}
           className="w-full rounded-md border border-black/15 bg-white px-3 py-2 pr-9 text-base outline-none focus:border-black/40 dark:border-white/20 dark:bg-zinc-900"
@@ -168,11 +187,7 @@ export function MemberSelect({
                 id={`${listboxId}-opt-${i}`}
                 role="option"
                 aria-selected={i === active}
-                onPointerDown={(e) => {
-                  // input の blur より前に選択を確定する。
-                  e.preventDefault();
-                  commit(m);
-                }}
+                onClick={() => commit(m)}
                 className={`cursor-pointer px-3 py-2 text-sm ${
                   i === active
                     ? "bg-emerald-600 text-white"
