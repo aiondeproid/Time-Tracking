@@ -22,6 +22,6 @@ export function searchMembers(members: Member[], query: string): Member[] {
   return members.filter(
     (m) =>
       foldForSearch(m.name).includes(q) ||
-      (m.reading !== "" && foldForSearch(m.reading).includes(q)),
+      (!!m.reading && foldForSearch(m.reading).includes(q)),
   );
 }
