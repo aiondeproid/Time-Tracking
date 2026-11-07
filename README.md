@@ -16,12 +16,13 @@
 - **勤怠一覧** `/list` — 期間（勤務日 from〜to、初期値は当月）と名前で絞り込み。
   行の編集・削除。深夜の時刻は 24 時間超え表記（例: 28:00）。
 - **Excel 書き出し** — 一覧と同じ条件で書式付き `.xlsx`（見出し固定・罫線・合計行）。
-- **名前の管理** `/members` — ログイン ID + パスワードで保護。
+- **名前の管理** `/members` — 管理用コード（`SIGNUP_CODE`）の入力で保護。
   追加 / 名前編集 / 表示順 / アーカイブ（物理削除しない）。Excel・CSV の一括取り込み
   （UTF-8 / Shift_JIS 自動判定、プレビュー → 確定）。テンプレート配布。
 
 勤怠入力・一覧・Excel 書き出しはログイン不要（利用者は自分の名前を選んで操作する）。
-「名前の管理」だけはログインが必要で、アカウント登録には招待コード（`SIGNUP_CODE`）を要求する。
+「名前の管理」だけは、管理用コード（`SIGNUP_CODE`）を入力して開く（ID・パスワードは無い）。
+同じ接続元から 5 回間違えると 5 分、全体で 15 分に 20 回間違えると 15 分ロックする。
 
 ## 技術構成
 
@@ -30,7 +31,7 @@
 | フレームワーク | Next.js 16（App Router） / TypeScript |
 | スタイル | Tailwind CSS v4 |
 | DB | SQLite（Node.js 標準の `node:sqlite`。追加のネイティブモジュール不要） |
-| 認証 | 自前の ID + パスワード（scrypt でハッシュ化）＋ DB セッション / HttpOnly Cookie |
+| 認証 | 管理用コード（`SIGNUP_CODE`）＋ DB セッション / HttpOnly Cookie |
 | Excel | `exceljs` |
 | CSV | `papaparse` + `encoding-japanese`（Shift_JIS 対応） |
 | バリデーション | `zod` |
@@ -56,7 +57,7 @@ npm run dev                               # http://localhost:3000
 
 DB の準備は不要。初回アクセス時に `data/kintai.db` とテーブルが自動で作られる。
 
-最初に `/signup` で「名前の管理」用のアカウントを作成する（`SIGNUP_CODE` が必要）。
+「名前の管理」を開くと管理用コードを聞かれるので、`.env.local` の `SIGNUP_CODE` の値を入力する。
 
 ### スクリプト
 
@@ -67,7 +68,7 @@ DB の準備は不要。初回アクセス時に `data/kintai.db` とテーブ�
 | `npm start` | 本番サーバー（要 `build`） |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `next typegen` + `tsc --noEmit` |
-| `npm test` | Vitest（勤務日判定・24 時間超え表記・パスワード・登録用コード・取り込みパーサ 等） |
+| `npm test` | Vitest（勤務日判定・24 時間超え表記・管理用コード・ロック・取り込みパーサ 等） |
 
 ## 環境変数
 
@@ -75,12 +76,13 @@ DB の準備は不要。初回アクセス時に `data/kintai.db` とテーブ�
 
 | 変数 | 用途 | 必須 |
 |---|---|---|
-| `SIGNUP_CODE` | 「名前の管理」のアカウント登録に要求する招待コード | 登録するなら必須 |
+| `SIGNUP_CODE` | 「名前の管理」を開くための管理用コード | 必須 |
 | `DATABASE_PATH` | SQLite ファイルの保存先（既定: `data/kintai.db`） | 任意 |
 | `SESSION_COOKIE_SECURE` | `true` でログイン Cookie に Secure 属性を付ける（HTTPS 公開時のみ） | 任意 |
 
-- `SIGNUP_CODE` を変更しても既存アカウントには影響しない（新規登録時のみ照合）。
-  未設定だと `/signup` は無効になる（既存アカウントのログインは可能）。
+- `SIGNUP_CODE` はこれだけで名前の管理に入れる唯一の鍵なので、**推測されにくい長い値**（12 文字以上推奨）にする。
+- `SIGNUP_CODE` を変更すると、ログイン中の人は全員ログアウトされる（変更後はアプリの再起動が必要）。
+  未設定だと名前の管理は開けない。
 - 社内ネットワークで `http://` のまま使う場合、`SESSION_COOKIE_SECURE` は設定しないこと
   （`true` にすると HTTP ではログインできなくなる）。
 
@@ -156,14 +158,14 @@ src/
       export/         GET  勤怠一覧の .xlsx 生成
       members/import  POST 名前リストの取り込み（preview / commit）
       members/template GET テンプレート配布
-    login/ signup/    「名前の管理」のログイン / ユーザー登録ページ
+    login/            「名前の管理」の管理用コード入力ページ
   proxy.ts            /members にログイン Cookie なしで来たら /login へ
   lib/
     db.ts             SQLite 接続・スキーマ自動作成（PRAGMA user_version で版管理）
     time.ts           日本時間・勤務日（4:00 境界）・24 時間超え表記
-    auth.ts / auth-actions.ts  ログイン状態・セッション / login・signup・logout の Server Action
-    password.ts       パスワードのハッシュ化（scrypt）
-    signup-code.ts    ユーザー登録の招待コード（SIGNUP_CODE）照合
+    auth.ts / auth-actions.ts  ログイン状態・セッション / login・logout の Server Action
+    login-throttle.ts 管理用コードの総当たり対策（失敗回数でロック）
+    signup-code.ts    管理用コード（SIGNUP_CODE）の照合
     attendance*.ts    勤怠の取得・Server Action
     members*.ts       メンバーの取得・変更・取り込みパーサ
     excel.ts          exceljs の帳票組み立て

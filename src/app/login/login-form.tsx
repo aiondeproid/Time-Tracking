@@ -17,23 +17,12 @@ export function LoginForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        ログイン ID
+        管理用コード
         <input
-          name="loginId"
-          type="text"
-          autoComplete="username"
-          autoFocus
-          required
-          className={inputClass}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        パスワード
-        <input
-          name="password"
+          name="code"
           type="password"
           autoComplete="current-password"
+          autoFocus
           required
           className={inputClass}
         />
@@ -50,7 +39,7 @@ export function LoginForm({ next }: { next: string }) {
         disabled={pending}
         className="mt-1 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
       >
-        {pending ? "確認中…" : "ログイン"}
+        {pending ? "確認中…" : "開く"}
       </button>
     </form>
   );

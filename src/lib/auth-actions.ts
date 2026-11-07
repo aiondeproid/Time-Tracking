@@ -1,10 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
-import { authenticate, createUser, endSession, startSession } from "@/lib/auth";
-import { isUniqueViolation } from "@/lib/db";
+import {
+  clientKey,
+  endSession,
+  loginLockedFor,
+  recordLoginFailure,
+  recordLoginSuccess,
+  startSession,
+} from "@/lib/auth";
 import { safeNextPath } from "@/lib/safe-next";
 import { isSignupEnabled, isValidSignupCode } from "@/lib/signup-code";
 
@@ -12,46 +17,13 @@ export type AuthState = { error: string | null };
 
 const fail = (error: string): AuthState => ({ error });
 
-const loginIdField = z
-  .string()
-  .trim()
-  .min(3, "ログイン ID は 3 文字以上にしてください")
-  .max(32, "ログイン ID は 32 文字以内にしてください")
-  .regex(/^[A-Za-z0-9._-]+$/, "ログイン ID は半角英数字と . _ - で入力してください");
-
-const credentials = z.object({
-  loginId: loginIdField,
-  password: z.string().min(8, "パスワードは 8 文字以上にしてください"),
-});
-
-const signupInput = credentials.extend({
-  signupCode: z.string().min(1, "登録用コードを入力してください"),
-});
-
-function destination(formData: FormData): string {
-  return safeNextPath(formData.get("next")) ?? "/members";
+function lockMessage(ms: number): string {
+  const min = Math.max(1, Math.ceil(ms / 60000));
+  return `間違いが続いたため、ロックしています。約 ${min} 分後にもう一度お試しください。`;
 }
 
-/** ログイン ID とパスワードでログインし、セッション Cookie を発行する。 */
+/** 管理用コード（SIGNUP_CODE）を照合し、正しければセッション Cookie を発行する。 */
 export async function loginAction(
-  _prev: AuthState,
-  formData: FormData,
-): Promise<AuthState> {
-  const parsed = credentials.safeParse({
-    loginId: formData.get("loginId"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) return fail("ログイン ID またはパスワードが違います。");
-
-  const userId = await authenticate(parsed.data.loginId, parsed.data.password);
-  if (!userId) return fail("ログイン ID またはパスワードが違います。");
-
-  await startSession(userId);
-  redirect(destination(formData));
-}
-
-/** 登録用コードを検証し、アカウントを作成してそのままログインさせる。 */
-export async function signupAction(
   _prev: AuthState,
   formData: FormData,
 ): Promise<AuthState> {
@@ -59,27 +31,20 @@ export async function signupAction(
     return fail("サーバー側で SIGNUP_CODE が設定されていません。");
   }
 
-  const parsed = signupInput.safeParse({
-    loginId: formData.get("loginId"),
-    password: formData.get("password"),
-    signupCode: formData.get("signupCode"),
-  });
-  if (!parsed.success) return fail(parsed.error.issues[0].message);
-  if (!isValidSignupCode(parsed.data.signupCode)) {
-    return fail("登録用コードが違います。");
+  const key = await clientKey();
+  const locked = loginLockedFor(key);
+  if (locked > 0) return fail(lockMessage(locked));
+
+  const code = formData.get("code");
+  if (typeof code !== "string" || !isValidSignupCode(code)) {
+    recordLoginFailure(key);
+    const nowLocked = loginLockedFor(key);
+    return fail(nowLocked > 0 ? lockMessage(nowLocked) : "コードが違います。");
   }
 
-  let userId: string | null;
-  try {
-    userId = await createUser(parsed.data.loginId, parsed.data.password);
-  } catch (e) {
-    if (isUniqueViolation(e)) userId = null;
-    else return fail("アカウントの作成に失敗しました。");
-  }
-  if (!userId) return fail("このログイン ID は使用済みです。別の ID にしてください。");
-
-  await startSession(userId);
-  redirect(destination(formData));
+  recordLoginSuccess(key);
+  await startSession();
+  redirect(safeNextPath(formData.get("next")) ?? "/members");
 }
 
 /** ログアウトしてログイン画面へ戻る（フォームの action 用なので戻り値なし）。 */

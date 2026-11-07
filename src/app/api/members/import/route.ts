@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/lib/auth";
+import { isLoggedIn } from "@/lib/auth";
 import { fetchAllMembers } from "@/lib/attendance";
 import { applyImportPlan } from "@/lib/members";
 import { planImport } from "@/lib/members-import";
@@ -16,7 +16,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
  * ログイン必須。
  */
 export async function POST(request: Request) {
-  if (!(await getSessionUser())) {
+  if (!(await isLoggedIn())) {
     return Response.json(
       { ok: false, error: "ログインが必要です。" },
       { status: 401 },

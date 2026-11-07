@@ -17,13 +17,7 @@ import { ImportPanel } from "./import-panel";
 
 const INITIAL: ActionState = { ok: false, error: null };
 
-export function MemberAdmin({
-  members,
-  userName,
-}: {
-  members: Member[];
-  userName: string;
-}) {
+export function MemberAdmin({ members }: { members: Member[] }) {
   const [addState, addAction, addPending] = useActionState(
     addMemberAction,
     INITIAL,
@@ -34,7 +28,7 @@ export function MemberAdmin({
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
         <span>
-          {userName} でログイン中（{activeCount} 名がアクティブ）。
+          管理者としてログイン中（{activeCount} 名がアクティブ）。
         </span>
         <form action={logoutAction}>
           <button

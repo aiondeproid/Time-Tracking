@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { getSessionUser } from "@/lib/auth";
+import { isLoggedIn } from "@/lib/auth";
 import {
   insertMember,
   moveMember,
@@ -20,7 +20,7 @@ const fail = (error: string): ActionState => ({ ok: false, error });
 
 /** ログイン済みか（「名前の管理」はログイン必須）。 */
 async function requireUser(): Promise<boolean> {
-  return (await getSessionUser()) !== null;
+  return isLoggedIn();
 }
 
 function revalidateAll() {

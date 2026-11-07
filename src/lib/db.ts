@@ -72,6 +72,19 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX sessions_user_idx ON sessions (user_id);
   `,
+  // 2: ID + パスワードのログインを廃止し、管理用コード（SIGNUP_CODE）だけで入る方式へ。
+  //    code_hash = ログインした時点のコードの指紋。コードを変えると既存セッションは無効になる。
+  `
+  DROP TABLE sessions;
+  DROP TABLE users;
+
+  CREATE TABLE admin_sessions (
+    token_hash TEXT PRIMARY KEY,
+    code_hash  TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ];
 
 function migrate(db: Db): void {

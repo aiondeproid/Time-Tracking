@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
  *
  * ここでは Cookie の有無だけを見る（早めにリダイレクトするための近道）。
  * セッションが本当に有効かは、ページ・Server Action・Route Handler 側で
- * `getSessionUser()`（[[auth]]）が DB と照合して判定する。
+ * `isLoggedIn()`（[[auth]]）が DB と照合して判定する。
  */
 const SESSION_COOKIE = "kintai_session"; // src/lib/auth.ts の SESSION_COOKIE と同じ値
 
