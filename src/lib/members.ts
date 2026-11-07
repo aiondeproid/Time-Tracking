@@ -23,6 +23,7 @@ function updateOne(sql: string, ...args: (string | number)[]): void {
 export async function insertMember(
   name: string,
   reading: string,
+  team: string,
   sortOrder: number,
 ): Promise<Member> {
   const id = newId();
@@ -30,10 +31,10 @@ export async function insertMember(
   try {
     getDb()
       .prepare(
-        `INSERT INTO members (id, name, reading, sort_order, active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 1, ?, ?)`,
+        `INSERT INTO members (id, name, reading, team, sort_order, active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
       )
-      .run(id, name, reading, sortOrder, now, now);
+      .run(id, name, reading, team, sortOrder, now, now);
   } catch (e) {
     throw friendly(e);
   }
@@ -46,11 +47,13 @@ export async function updateMemberName(
   id: string,
   name: string,
   reading: string,
+  team: string,
 ): Promise<void> {
   updateOne(
-    "UPDATE members SET name = ?, reading = ?, updated_at = ? WHERE id = ?",
+    "UPDATE members SET name = ?, reading = ?, team = ?, updated_at = ? WHERE id = ?",
     name,
     reading,
+    team,
     nowIso(),
     id,
   );
@@ -124,11 +127,11 @@ export async function applyImportPlan(
       const now = nowIso();
 
       const insert = db.prepare(
-        `INSERT INTO members (id, name, reading, sort_order, active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 1, ?, ?)`,
+        `INSERT INTO members (id, name, reading, team, sort_order, active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
       );
       for (const a of plan.add) {
-        insert.run(newId(), a.name, a.reading, a.sortOrder, now, now);
+        insert.run(newId(), a.name, a.reading, a.team, a.sortOrder, now, now);
       }
 
       for (const u of plan.update) {
@@ -138,6 +141,10 @@ export async function applyImportPlan(
         if (u.reading !== undefined) {
           sets.push("reading = ?");
           args.push(u.reading);
+        }
+        if (u.team !== undefined) {
+          sets.push("team = ?");
+          args.push(u.team);
         }
         args.push(u.id);
         db.prepare(`UPDATE members SET ${sets.join(", ")} WHERE id = ?`).run(...args);

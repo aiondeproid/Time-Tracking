@@ -128,7 +128,7 @@ describe("planImport（追加 / 更新 / スキップの判定）", () => {
       existing,
     );
     expect(plan.counts).toEqual({ add: 1, update: 1, skip: 0 });
-    expect(plan.add).toEqual([{ name: "新人 A", reading: "", sortOrder: 50 }]);
+    expect(plan.add).toEqual([{ name: "新人 A", reading: "", team: "", sortOrder: 50 }]);
     expect(plan.update).toEqual([
       {
         id: "id-yamada",
@@ -213,8 +213,35 @@ describe("planImport（追加 / 更新 / スキップの判定）", () => {
       [6, "ファイル内で名前が重複しています"],
     ]);
     expect(plan.add).toEqual([
-      { name: "佐藤 花子", reading: "", sortOrder: 20 },
+      { name: "佐藤 花子", reading: "", team: "", sortOrder: 20 },
     ]);
+  });
+
+  it("所属列があれば追加・更新とも所属を入れる。無ければ所属は変更しない（team が無い）", () => {
+    const rows = rowsFromMatrix([
+      ["名前", "所属", "表示順"],
+      ["山田 太郎", " 関西男性 ", "10"],
+      ["新人 B", "トーコー", "60"],
+      ["高橋 実", "", "40"],
+    ]);
+    expect(rows.map((r) => r.team)).toEqual(["関西男性", "トーコー", ""]);
+
+    const plan = planImport(rows, existing);
+    expect(plan.add).toEqual([{ name: "新人 B", reading: "", team: "トーコー", sortOrder: 60 }]);
+    expect(plan.update.find((u) => u.name === "山田 太郎")?.team).toBe("関西男性");
+    // 所属セルが空 = 所属を空にする（列自体はある）
+    expect(plan.update.find((u) => u.name === "高橋 実")?.team).toBe("");
+
+    const noTeamCol = planImport(
+      rowsFromMatrix([["名前", "表示順"], ["山田 太郎", "10"]]),
+      existing,
+    );
+    expect("team" in noTeamCol.update[0]).toBe(false);
+  });
+
+  it("ヘッダー無しのファイルでは所属列を推測しない", () => {
+    const rows = rowsFromMatrix([["山田 太郎", "やまだ", "10", "関西男性"]]);
+    expect(rows[0].team).toBeUndefined();
   });
 
   it("ファイルに無い既存メンバーは計画に現れない（消さない）", () => {

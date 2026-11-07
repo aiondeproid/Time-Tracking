@@ -85,6 +85,10 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // 3: メンバーの所属（勤怠入力のタブ。例: 関西男性 / 関西女性 / 派遣会社名 / 応援者）。空 = 「その他」。
+  `
+  ALTER TABLE members ADD COLUMN team TEXT NOT NULL DEFAULT '';
+  `,
 ];
 
 function migrate(db: Db): void {

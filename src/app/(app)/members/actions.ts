@@ -36,7 +36,7 @@ const nameField = z
   .max(100, "名前は 100 文字以内で入力してください");
 /**
  * 読み仮名（任意）。カタカナ/全角英数で入力されてもひらがなに正規化して保存する。
- * 検索側（member-select）はこの正規化を前提に照合する。
+ * 検索側（member-search）はこの正規化を前提に照合する。
  */
 const readingField = z
   .string()
@@ -47,6 +47,11 @@ const readingField = z
     isHiraganaReading,
     "読み仮名はひらがな（またはカタカナ）で入力してください",
   );
+/** 所属（勤怠入力のタブ名・任意）。空なら「その他」タブに出る。 */
+const teamField = z
+  .string()
+  .trim()
+  .max(50, "所属は 50 文字以内で入力してください");
 const sortOrderField = z.coerce
   .number()
   .refine((n) => Number.isFinite(n), "表示順は数値で入力してください")
@@ -58,16 +63,23 @@ export async function addMemberAction(
 ): Promise<ActionState> {
   if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
-    .object({ name: nameField, reading: readingField, sortOrder: sortOrderField })
+    .object({
+      name: nameField,
+      reading: readingField,
+      team: teamField,
+      sortOrder: sortOrderField,
+    })
     .safeParse({
       name: formData.get("name"),
       reading: formData.get("reading") || "",
+      team: formData.get("team") || "",
       sortOrder: formData.get("sortOrder") || 0,
     });
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   try {
-    await insertMember(parsed.data.name, parsed.data.reading, parsed.data.sortOrder);
+    const { name, reading, team, sortOrder } = parsed.data;
+    await insertMember(name, reading, team, sortOrder);
   } catch (e) {
     return fail(e instanceof Error ? e.message : "追加に失敗しました");
   }
@@ -81,16 +93,18 @@ export async function renameMemberAction(
 ): Promise<ActionState> {
   if (!(await requireUser())) return fail("ログインが必要です。");
   const parsed = z
-    .object({ id: z.uuid(), name: nameField, reading: readingField })
+    .object({ id: z.uuid(), name: nameField, reading: readingField, team: teamField })
     .safeParse({
       id: formData.get("id"),
       name: formData.get("name"),
       reading: formData.get("reading") || "",
+      team: formData.get("team") || "",
     });
   if (!parsed.success) return fail(parsed.error.issues[0].message);
 
   try {
-    await updateMemberName(parsed.data.id, parsed.data.name, parsed.data.reading);
+    const { id, name, reading, team } = parsed.data;
+    await updateMemberName(id, name, reading, team);
   } catch (e) {
     return fail(e instanceof Error ? e.message : "更新に失敗しました");
   }

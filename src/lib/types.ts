@@ -9,6 +9,8 @@ export type Member = {
   name: string;
   /** 読み仮名（ひらがな）。勤怠入力の名前検索の補助用。未設定なら空文字。 */
   reading: string;
+  /** 所属（勤怠入力のタブ名）。未設定なら空文字（「その他」タブに出る）。 */
+  team: string;
   sort_order: number;
   active: boolean;
   created_at: string;
@@ -33,13 +35,14 @@ export type Attendance = {
 export type MemberInsert = {
   name: string;
   reading?: string;
+  team?: string;
   sort_order?: number;
   active?: boolean;
 };
 
 /** members を更新するときのペイロード（サーバー経由のみ）。 */
 export type MemberUpdate = Partial<
-  Pick<Member, "name" | "reading" | "sort_order" | "active">
+  Pick<Member, "name" | "reading" | "team" | "sort_order" | "active">
 >;
 
 /** attendance へ挿入するときのペイロード。 */

@@ -10,7 +10,7 @@ import { describeRow } from "@/lib/attendance-view";
 import { resolveWorkDate, weekdayJa } from "@/lib/time";
 
 import { ClockPanel } from "./clock-panel";
-import { MemberSelect } from "./member-select";
+import { MemberPicker } from "./member-picker";
 import { NowClock } from "./now-clock";
 import { RecordList } from "./record-list";
 
@@ -49,7 +49,7 @@ export default async function AttendancePage(props: PageProps<"/attendance">) {
         </p>
       ) : (
         <>
-          <MemberSelect
+          <MemberPicker
             members={members}
             selectedId={selected?.id ?? null}
             selectedName={selected?.name ?? null}
@@ -73,7 +73,7 @@ export default async function AttendancePage(props: PageProps<"/attendance">) {
             </>
           ) : (
             <p className="rounded-lg border border-dashed border-black/15 px-4 py-8 text-center text-sm text-zinc-500 dark:border-white/20">
-              上の欄で名前を選ぶと、出勤・退勤の記録ができます。
+              上で名前を選ぶと、出勤・退勤の記録ができます。
             </p>
           )}
         </>

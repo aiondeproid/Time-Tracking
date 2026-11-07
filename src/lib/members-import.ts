@@ -16,15 +16,19 @@ export type RawImportRow = {
   /** 読み仮名列が無いファイルでは undefined（＝読み仮名は変更しない）。 */
   reading: string | undefined;
   sortOrder: string;
+  /** 所属列が無いファイルでは undefined（＝所属は変更しない）。 */
+  team?: string;
 };
 
 export type SkippedRow = { rowNumber: number; name: string; reason: string };
-export type PlannedAdd = { name: string; reading: string; sortOrder: number };
+export type PlannedAdd = { name: string; reading: string; team: string; sortOrder: number };
 export type PlannedUpdate = {
   id: string;
   name: string;
   /** undefined = 読み仮名は変更しない（ファイルに読み仮名列が無い）。 */
   reading: string | undefined;
+  /** undefined = 所属は変更しない（ファイルに所属列が無い）。 */
+  team?: string;
   sortOrder: number;
   /** アーカイブ済みメンバーと一致 → 再アクティブ化する。 */
   reactivate: boolean;
@@ -111,6 +115,17 @@ export function detectColumns(firstRow: string[]): {
   return { nameCol: 0, readingCol: -1, orderCol: 1, hasHeader: false };
 }
 
+const TEAM_HEADERS = ["所属", "グループ", "タブ", "区分", "team", "group"];
+
+/**
+ * ヘッダー行から「所属」列の位置を返す。無ければ -1。
+ * 所属列はヘッダーで明示された場合だけ読む（列数からの推測はしない）。
+ */
+export function detectTeamColumn(headerRow: string[]): number {
+  const norm = headerRow.map((c) => c.trim().toLowerCase());
+  return norm.findIndex((cell) => TEAM_HEADERS.some((h) => h.toLowerCase() === cell));
+}
+
 /** セルの二次元配列から取り込み対象行を抽出する。 */
 export function rowsFromMatrix(matrix: string[][]): RawImportRow[] {
   const nonEmpty = matrix.filter((row) =>
@@ -118,9 +133,9 @@ export function rowsFromMatrix(matrix: string[][]): RawImportRow[] {
   );
   if (nonEmpty.length === 0) return [];
 
-  const { nameCol, readingCol, orderCol, hasHeader } = detectColumns(
-    nonEmpty[0].map((c) => String(c ?? "")),
-  );
+  const header = nonEmpty[0].map((c) => String(c ?? ""));
+  const { nameCol, readingCol, orderCol, hasHeader } = detectColumns(header);
+  const teamCol = hasHeader ? detectTeamColumn(header) : -1;
   const dataRows = hasHeader ? nonEmpty.slice(1) : nonEmpty;
 
   return dataRows.map((row, i) => ({
@@ -128,6 +143,7 @@ export function rowsFromMatrix(matrix: string[][]): RawImportRow[] {
     name: String(row[nameCol] ?? ""),
     reading: readingCol >= 0 ? String(row[readingCol] ?? "") : undefined,
     sortOrder: String(row[orderCol] ?? ""),
+    ...(teamCol >= 0 ? { team: String(row[teamCol] ?? "").trim() } : {}),
   }));
 }
 
@@ -177,14 +193,17 @@ export function planImport(
     const reading =
       row.reading !== undefined ? normalizeReading(row.reading.trim()) : undefined;
 
+    const team = row.team !== undefined ? row.team.trim().slice(0, 50) : undefined;
+
     const found = byName.get(name);
     if (!found) {
-      add.push({ name, reading: reading ?? "", sortOrder });
+      add.push({ name, reading: reading ?? "", team: team ?? "", sortOrder });
     } else {
       update.push({
         id: found.id,
         name,
         reading,
+        ...(team !== undefined ? { team } : {}),
         sortOrder,
         reactivate: !found.active,
       });

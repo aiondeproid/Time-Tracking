@@ -8,6 +8,7 @@ function member(name: string, reading: string): Member {
     id: name,
     name,
     reading,
+    team: "",
     sort_order: 0,
     active: true,
     created_at: "2026-01-01T00:00:00Z",

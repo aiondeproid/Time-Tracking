@@ -17,15 +17,25 @@ import { ImportPanel } from "./import-panel";
 
 const INITIAL: ActionState = { ok: false, error: null };
 
+/** 所属の入力候補（datalist）の id。追加フォームと編集フォームで共有する。 */
+const TEAM_OPTIONS_ID = "member-team-options";
+
 export function MemberAdmin({ members }: { members: Member[] }) {
   const [addState, addAction, addPending] = useActionState(
     addMemberAction,
     INITIAL,
   );
   const activeCount = members.filter((m) => m.active).length;
+  // 既存の所属（表示順で最初に出てきた順）を入力候補にする。
+  const teams = [...new Set(members.map((m) => m.team).filter((t) => t !== ""))];
 
   return (
     <div className="flex flex-col gap-8">
+      <datalist id={TEAM_OPTIONS_ID}>
+        {teams.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
       <div className="flex items-center justify-between rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
         <span>
           管理者としてログイン中（{activeCount} 名がアクティブ）。
@@ -62,6 +72,16 @@ export function MemberAdmin({ members }: { members: Member[] }) {
               maxLength={100}
               placeholder="やまだ たろう"
               className="rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium">
+            所属（勤怠入力のタブ）
+            <input
+              name="team"
+              maxLength={50}
+              list={TEAM_OPTIONS_ID}
+              placeholder="関西男性"
+              className="w-36 rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs font-medium">
@@ -191,7 +211,7 @@ function MemberRow({
 
         {/* 名前 */}
         {editing ? (
-          <form action={renameAction} className="flex items-center gap-2">
+          <form action={renameAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="id" value={member.id} />
             <input
               name="name"
@@ -207,6 +227,15 @@ function MemberRow({
               maxLength={100}
               placeholder="読み仮名（ひらがな）"
               className="rounded-md border border-black/15 bg-white px-2 py-1 text-sm dark:border-white/20 dark:bg-zinc-900"
+            />
+            <input
+              name="team"
+              defaultValue={member.team}
+              maxLength={50}
+              list={TEAM_OPTIONS_ID}
+              placeholder="所属"
+              aria-label="所属"
+              className="w-32 rounded-md border border-black/15 bg-white px-2 py-1 text-sm dark:border-white/20 dark:bg-zinc-900"
             />
             <button
               type="submit"
@@ -225,6 +254,15 @@ function MemberRow({
           </form>
         ) : (
           <span className="min-w-[8rem] font-medium">
+            <span
+              className={`mr-2 inline-block rounded px-1.5 py-0.5 text-xs font-normal ${
+                member.team
+                  ? "bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300"
+                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+              }`}
+            >
+              {member.team || "所属なし"}
+            </span>
             {member.name}
             {member.reading && (
               <span className="ml-1.5 font-normal text-zinc-500 dark:text-zinc-400">
@@ -265,7 +303,7 @@ function MemberRow({
               onClick={() => setEditing(true)}
               className="rounded-md border border-black/15 px-2 py-1 text-xs dark:border-white/20"
             >
-              名前を編集
+              名前・所属を編集
             </button>
           )}
           <form action={activeAction}>

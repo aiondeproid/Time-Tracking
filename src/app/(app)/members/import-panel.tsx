@@ -81,7 +81,7 @@ export function ImportPanel() {
     <section className="flex flex-col gap-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
       <h2 className="text-sm font-semibold">ファイルから取り込み（.xlsx / .xls / .csv）</h2>
       <p className="text-xs leading-relaxed text-zinc-500">
-        「名前」「読み仮名」「表示順」の列。読み仮名は任意で、勤怠入力の名前検索を
+        「名前」「読み仮名」「所属」「表示順」の列。所属は勤怠入力のタブ名（任意・列が無ければ既存の所属は変更しません）。読み仮名は任意で、勤怠入力の名前検索を
         ひらがな・カタカナ・ローマ字でも予測できるようにするためのものです（列が無い
         ファイルを取り込んでも、既存メンバーの読み仮名は変更しません）。名前をキーに{" "}
         <b>追加 + 更新</b>（ファイルに無い名前は変更しません）。ヘッダー行から列名を
