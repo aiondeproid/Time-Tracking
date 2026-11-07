@@ -17,7 +17,7 @@
   行の編集・削除。深夜の時刻は 24 時間超え表記（例: 28:00）。
 - **Excel 書き出し** — 一覧と同じ条件で書式付き `.xlsx`（見出し固定・罫線・合計行）。
 - **名前の管理** `/members` — 管理用コード（`SIGNUP_CODE`）の入力で保護。
-  追加 / 名前編集 / 表示順 / アーカイブ（物理削除しない）。Excel・CSV の一括取り込み
+  追加 / 名前編集 / 表示順 / アーカイブ（物理削除しない）。Excel（.xlsx / .xls）・CSV の一括取り込み
   （UTF-8 / Shift_JIS 自動判定、プレビュー → 確定）。テンプレート配布。
 
 勤怠入力・一覧・Excel 書き出しはログイン不要（利用者は自分の名前を選んで操作する）。
@@ -32,7 +32,7 @@
 | スタイル | Tailwind CSS v4 |
 | DB | SQLite（Node.js 標準の `node:sqlite`。追加のネイティブモジュール不要） |
 | 認証 | 管理用コード（`SIGNUP_CODE`）＋ DB セッション / HttpOnly Cookie |
-| Excel | `exceljs` |
+| Excel | `exceljs`（書き出し・.xlsx 取り込み） / `xlsx`（SheetJS 公式配布の 0.20.3。.xls 取り込み） |
 | CSV | `papaparse` + `encoding-japanese`（Shift_JIS 対応） |
 | バリデーション | `zod` |
 | 日時 | `dayjs`（`utc` / `timezone` プラグイン、Asia/Tokyo 固定） |

@@ -121,13 +121,24 @@ function open(): Db {
   db.exec("PRAGMA foreign_keys = ON");
   db.exec("PRAGMA busy_timeout = 5000");
   db.exec("PRAGMA synchronous = NORMAL");
-  migrate(db);
   return db;
 }
 
+/**
+ * このモジュールが読み込まれてからマイグレーションを確認済みか。
+ * 接続は globalThis に置いて使い回すが、開発サーバーのホットリロードで MIGRATIONS が
+ * 増えた場合に備え、モジュールが読み込み直されるたびに（＝このフラグが false に戻るたびに）
+ * 未適用のマイグレーションを流す。
+ */
+let migratedInThisModule = false;
+
 /** アプリ全体で共有する DB 接続（開発時のホットリロードでも 1 つに保つ）。 */
 export function getDb(): Db {
-  if (!globalForDb.__kintaiDb) globalForDb.__kintaiDb = open();
+  globalForDb.__kintaiDb ??= open();
+  if (!migratedInThisModule) {
+    migrate(globalForDb.__kintaiDb);
+    migratedInThisModule = true;
+  }
   return globalForDb.__kintaiDb;
 }
 

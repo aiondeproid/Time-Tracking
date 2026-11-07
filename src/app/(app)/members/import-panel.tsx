@@ -79,7 +79,7 @@ export function ImportPanel() {
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
-      <h2 className="text-sm font-semibold">ファイルから取り込み（.xlsx / .csv）</h2>
+      <h2 className="text-sm font-semibold">ファイルから取り込み（.xlsx / .xls / .csv）</h2>
       <p className="text-xs leading-relaxed text-zinc-500">
         「名前」「読み仮名」「表示順」の列。読み仮名は任意で、勤怠入力の名前検索を
         ひらがな・カタカナ・ローマ字でも予測できるようにするためのものです（列が無い
@@ -93,7 +93,7 @@ export function ImportPanel() {
         <input
           ref={fileRef}
           type="file"
-          accept=".xlsx,.csv"
+          accept=".xlsx,.xls,.csv"
           onChange={(e) => {
             setFile(e.target.files?.[0] ?? null);
             resetFeedback();

@@ -4,11 +4,13 @@ import ExcelJS from "exceljs";
 
 import { csvRowsFromBytes } from "./members-csv";
 import { rowsFromMatrix, type RawImportRow } from "./members-import";
+import { xlsRowsFromBytes } from "./members-xls";
 
 /** 対応形式かどうかを拡張子で判定する。 */
-export function importExtension(filename: string): "xlsx" | "csv" | null {
+export function importExtension(filename: string): "xlsx" | "xls" | "csv" | null {
   const ext = filename.toLowerCase().split(".").pop();
   if (ext === "xlsx") return "xlsx";
+  if (ext === "xls") return "xls";
   if (ext === "csv") return "csv";
   return null;
 }
@@ -46,13 +48,14 @@ async function parseXlsx(bytes: Uint8Array): Promise<RawImportRow[]> {
   return rowsFromMatrix(matrix);
 }
 
-/** アップロードされた .xlsx / .csv から取り込み対象行を抽出する。 */
+/** アップロードされた .xlsx / .xls / .csv から取り込み対象行を抽出する。 */
 export async function parseMembersFile(
   bytes: Uint8Array,
   filename: string,
 ): Promise<RawImportRow[]> {
   const ext = importExtension(filename);
   if (ext === "xlsx") return parseXlsx(bytes);
+  if (ext === "xls") return xlsRowsFromBytes(bytes);
   if (ext === "csv") return csvRowsFromBytes(bytes);
-  throw new Error("対応形式は .xlsx または .csv です");
+  throw new Error("対応形式は .xlsx / .xls / .csv です");
 }
