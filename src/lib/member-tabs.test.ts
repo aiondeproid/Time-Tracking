@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupMembersByTeam, NO_TEAM_LABEL } from "./member-tabs";
+import { groupMembersByTeam, NO_TEAM_LABEL, teamCategory } from "./member-tabs";
 import type { Member } from "./types";
 
 let seq = 0;
@@ -36,5 +36,16 @@ describe("groupMembersByTeam（勤怠入力のタブ分け）", () => {
 
   it("メンバーがいなければタブも無い", () => {
     expect(groupMembersByTeam([])).toEqual([]);
+  });
+});
+
+describe("teamCategory（タブの色分け）", () => {
+  it("男性・女性・応援・派遣会社・所属なしに分ける", () => {
+    expect(teamCategory("関西男性")).toBe("male");
+    expect(teamCategory("関西女性")).toBe("female");
+    expect(teamCategory("日東ベスト応援者")).toBe("support");
+    expect(teamCategory("トーコー")).toBe("agency");
+    expect(teamCategory("ＡＣキャリア")).toBe("agency");
+    expect(teamCategory("  ")).toBe("none");
   });
 });

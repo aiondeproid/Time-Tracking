@@ -8,6 +8,8 @@ import { useNow } from "@/lib/use-now";
 
 import { clockOutAction, type ActionState } from "@/lib/attendance-actions";
 
+import { Tr, TrSub } from "@/components/tr";
+
 import { ClockOutFields } from "./clock-out-fields";
 
 const INITIAL: ActionState = { ok: false, error: null };
@@ -17,6 +19,8 @@ export function RecordList({ rows }: { rows: RowView[] }) {
     return (
       <p className="rounded-lg border border-dashed border-black/15 px-4 py-6 text-center text-sm text-zinc-500 dark:border-white/20">
         まだ記録がありません。「出勤」から記録を追加してください。
+        <br />
+        <TrSub k="記録なし" />
       </p>
     );
   }
@@ -56,13 +60,13 @@ function RecordItem({ row }: { row: RowView }) {
           {row.inClock}
           <span className="mx-1 text-zinc-400">〜</span>
           {row.isOpen ? (
-            <span className="text-amber-600 dark:text-amber-500">退勤待ち</span>
+            <span className="text-amber-600 dark:text-amber-500"><Tr k="退勤待ち" layout="inline" /></span>
           ) : (
             row.outClock
           )}
         </span>
         <span className="tabular-nums text-zinc-600 dark:text-zinc-400">
-          実働 {row.isOpen ? <LiveWorked fromIso={row.inAtIso} /> : row.worked}
+          <Tr k="実働" layout="inline" /> {row.isOpen ? <LiveWorked fromIso={row.inAtIso} /> : row.worked}
         </span>
         {row.note && (
           <span className="text-zinc-500" title={row.note}>
@@ -78,7 +82,7 @@ function RecordItem({ row }: { row: RowView }) {
             onClick={() => setMode("clockout")}
             className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
           >
-            退勤
+            <Tr k="退勤" />
           </button>
         </div>
       )}

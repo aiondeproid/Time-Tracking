@@ -16,11 +16,24 @@ import {
   type ActionState,
 } from "@/lib/attendance-actions";
 
+import { Tr, TrSub } from "@/components/tr";
+
 import { ClockOutFields } from "./clock-out-fields";
+import { openPicker, PICKER_INPUT_CLASS, PICKER_LABEL_CLASS } from "./picker-input";
 
 const INITIAL: ActionState = { ok: false, error: null };
 
 type Mode = "idle" | "in" | "out";
+
+/** 出勤・退勤ボタンの中身。日本語の下に英語・ポルトガル語の訳を添える。 */
+function ButtonLabel({ k }: { k: "出勤" | "退勤" }) {
+  return (
+    <span className="flex flex-col items-center leading-tight">
+      <span className="text-lg">{k}</span>
+      <TrSub k={k} className="mt-0.5 text-xs font-medium opacity-90" />
+    </span>
+  );
+}
 
 export function ClockPanel({
   memberId,
@@ -77,7 +90,7 @@ export function ClockPanel({
   if (mode === "out") {
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-sky-600/30 bg-sky-50/50 p-4 dark:bg-sky-950/20">
-        <p className="text-sm font-semibold">退勤の記録</p>
+        <p className="text-sm font-semibold"><Tr k="退勤の記録" layout="inline" /></p>
         {openRows.length === 1 && (
           <p className="text-xs text-zinc-500">
             {openRows[0].workDate}（{openRows[0].weekday}） {openRows[0].inClock}〜
@@ -108,7 +121,7 @@ export function ClockPanel({
           }}
           className="flex-1 rounded-lg bg-emerald-600 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700"
         >
-          出勤
+          <ButtonLabel k="出勤" />
         </button>
         <button
           type="button"
@@ -119,7 +132,7 @@ export function ClockPanel({
           }}
           className="flex-1 rounded-lg bg-sky-600 px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          退勤
+          <ButtonLabel k="退勤" />
         </button>
       </div>
       <p className="mt-1 text-xs text-zinc-500">
@@ -161,31 +174,33 @@ function ClockInFields({
       action={formAction}
       className="flex flex-col gap-3 rounded-lg border border-emerald-600/30 bg-emerald-50/50 p-4 dark:bg-emerald-950/20"
     >
-      <p className="text-sm font-semibold">出勤の記録</p>
+      <p className="text-sm font-semibold"><Tr k="出勤の記録" layout="inline" /></p>
       <input type="hidden" name="memberId" value={memberId} />
       <input type="hidden" name="workDate" value={workDate} />
 
-      <fieldset className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          出勤日
+      <fieldset className="grid gap-3 sm:grid-cols-2">
+        <label className={PICKER_LABEL_CLASS}>
+          <Tr k="出勤日" layout="inline" />
           <input
             type="date"
             name="inDate"
             value={inDate}
             onChange={(e) => setInDate(e.target.value)}
             required
-            className="rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
+            onClick={openPicker}
+            className={PICKER_INPUT_CLASS}
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium">
-          出勤時刻
+        <label className={PICKER_LABEL_CLASS}>
+          <Tr k="出勤時刻" layout="inline" />
           <input
             type="time"
             name="inTime"
             value={inTime}
             onChange={(e) => setInTime(e.target.value)}
             required
-            className="rounded-md border border-black/15 bg-white px-2 py-1.5 text-sm dark:border-white/20 dark:bg-zinc-900"
+            onClick={openPicker}
+            className={PICKER_INPUT_CLASS}
           />
         </label>
       </fieldset>
@@ -196,10 +211,13 @@ function ClockInFields({
           {workDate}（{weekdayJa(workDate)}）
         </span>{" "}
         として自動で記録されます（深夜 4:00 より前の出勤は前日扱い）。
+        <br />
+        <TrSub k="勤務日" />
+        <span className="opacity-75">: {workDate}</span>
       </p>
 
       <label className="flex flex-col gap-1 text-xs font-medium">
-        備考（任意）
+        <Tr k="備考（任意）" layout="inline" />
         <input
           type="text"
           name="note"
@@ -220,14 +238,14 @@ function ClockInFields({
           disabled={pending}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
         >
-          {pending ? "保存中…" : "保存"}
+          {pending ? <Tr k="保存中…" /> : <Tr k="保存" />}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="rounded-md border border-black/15 px-4 py-2 text-sm dark:border-white/20"
         >
-          キャンセル
+          <Tr k="キャンセル" />
         </button>
       </div>
     </form>

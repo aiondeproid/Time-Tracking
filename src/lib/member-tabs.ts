@@ -34,3 +34,19 @@ export function groupMembersByTeam(members: Member[]): MemberTab[] {
   if (noTeam >= 0) list.push(...list.splice(noTeam, 1));
   return list;
 }
+
+/** タブの色分け用の区分。 */
+export type TeamCategory = "male" | "female" | "support" | "agency" | "none";
+
+/**
+ * 所属名から色分けの区分を決める（勤怠入力のタブ用）。
+ * 「男性」「女性」「応援」を含む所属はそれぞれの色、ほかの所属は派遣会社として扱う。所属なしは灰色。
+ */
+export function teamCategory(team: string): TeamCategory {
+  const t = team.trim();
+  if (t === "") return "none";
+  if (t.includes("女性")) return "female";
+  if (t.includes("男性")) return "male";
+  if (t.includes("応援")) return "support";
+  return "agency";
+}

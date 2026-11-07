@@ -4,8 +4,38 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 
 import { searchMembers } from "@/lib/member-search";
-import { groupMembersByTeam } from "@/lib/member-tabs";
+import { groupMembersByTeam, teamCategory, type TeamCategory } from "@/lib/member-tabs";
 import type { Member } from "@/lib/types";
+import { Tr } from "@/components/tr";
+
+/** 所属区分ごとの色（タブ・所属バッジ）。Tailwind が拾えるようクラス名は省略せずに書く。 */
+const TEAM_COLORS: Record<TeamCategory, { tab: string; active: string; badge: string }> = {
+  male: {
+    tab: "border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-200 dark:hover:bg-sky-900/50",
+    active: "border-sky-600 bg-sky-600 text-white dark:border-sky-500 dark:bg-sky-500",
+    badge: "bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-200",
+  },
+  female: {
+    tab: "border-pink-300 bg-pink-50 text-pink-800 hover:bg-pink-100 dark:border-pink-700 dark:bg-pink-950/40 dark:text-pink-200 dark:hover:bg-pink-900/50",
+    active: "border-pink-600 bg-pink-600 text-white dark:border-pink-500 dark:bg-pink-500",
+    badge: "bg-pink-100 text-pink-800 dark:bg-pink-900/60 dark:text-pink-200",
+  },
+  agency: {
+    tab: "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/50",
+    active: "border-amber-600 bg-amber-600 text-white dark:border-amber-500 dark:bg-amber-500 dark:text-zinc-900",
+    badge: "bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200",
+  },
+  support: {
+    tab: "border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/50",
+    active: "border-violet-600 bg-violet-600 text-white dark:border-violet-500 dark:bg-violet-500",
+    badge: "bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-200",
+  },
+  none: {
+    tab: "border-black/15 bg-white text-zinc-700 hover:bg-black/5 dark:border-white/20 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-white/10",
+    active: "border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-zinc-900",
+    badge: "bg-zinc-100 text-zinc-700 dark:bg-white/10 dark:text-zinc-300",
+  },
+};
 
 const MEMBER_KEY = "kintai.selectedMember";
 const TAB_KEY = "kintai.selectedTab";
@@ -112,10 +142,10 @@ export function MemberPicker({
   if (selectedName && !open) {
     return (
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-600/30 bg-emerald-50/60 px-4 py-3 dark:bg-emerald-950/20">
-        <span className="text-sm text-zinc-600 dark:text-zinc-400">選択中</span>
+        <span className="text-sm text-zinc-600 dark:text-zinc-400"><Tr k="選択中" /></span>
         <span className="text-lg font-bold">{selectedName}</span>
         {selectedTeam && (
-          <span className="rounded bg-white/80 px-1.5 py-0.5 text-xs text-zinc-600 dark:bg-white/10 dark:text-zinc-300">
+          <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${TEAM_COLORS[teamCategory(selectedTeam)].badge}`}>
             {selectedTeam}
           </span>
         )}
@@ -127,14 +157,14 @@ export function MemberPicker({
             aria-controls={panelId}
             className="rounded-md border border-black/15 bg-white px-3 py-1.5 text-sm font-medium hover:bg-zinc-50 dark:border-white/20 dark:bg-zinc-900 dark:hover:bg-zinc-800"
           >
-            名前を変更
+            <Tr k="名前を変更" />
           </button>
           <button
             type="button"
             onClick={() => choose(null)}
             className="rounded-md px-2 py-1.5 text-sm text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10"
           >
-            選択を解除
+            <Tr k="選択を解除" />
           </button>
         </div>
       </div>
@@ -146,7 +176,7 @@ export function MemberPicker({
     <section id={panelId} className="flex flex-col gap-3" aria-label="名前を選ぶ">
       <div className="flex items-end gap-2">
         <label htmlFor={searchId} className="flex flex-1 flex-col gap-1 text-sm font-medium">
-          名前を検索
+          <Tr k="名前を検索" layout="inline" />
           <div className="relative">
             <input
               id={searchId}
@@ -178,7 +208,7 @@ export function MemberPicker({
             }}
             className="rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20"
           >
-            閉じる
+            <Tr k="閉じる" />
           </button>
         )}
       </div>
@@ -187,6 +217,7 @@ export function MemberPicker({
         <div role="tablist" aria-label="所属" className="flex flex-wrap gap-1.5">
           {tabs.map((t) => {
             const active = t.key === currentTab?.key;
+            const color = TEAM_COLORS[teamCategory(t.key)];
             return (
               <button
                 key={t.key}
@@ -194,14 +225,12 @@ export function MemberPicker({
                 role="tab"
                 aria-selected={active}
                 onClick={() => selectTab(t.key)}
-                className={
-                  active
-                    ? "rounded-full bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-white dark:text-zinc-900"
-                    : "rounded-full border border-black/15 px-3 py-1.5 text-sm text-zinc-700 hover:bg-black/5 dark:border-white/20 dark:text-zinc-300 dark:hover:bg-white/10"
-                }
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active ? `${color.active} shadow-sm` : color.tab
+                }`}
               >
                 {t.label}
-                <span className={active ? "ml-1 opacity-70" : "ml-1 text-zinc-400"}>{t.members.length}</span>
+                <span className={active ? "ml-1 opacity-80" : "ml-1 opacity-60"}>{t.members.length}</span>
               </button>
             );
           })}
@@ -241,7 +270,7 @@ export function MemberPicker({
                 >
                   <span className="leading-tight">{m.name}</span>
                   {searching && m.team && (
-                    <span className={`mt-0.5 text-xs font-normal ${isSelected ? "text-white/80" : "text-zinc-500"}`}>
+                    <span className={`mt-0.5 rounded px-1.5 text-xs font-normal ${isSelected ? "text-white/80" : TEAM_COLORS[teamCategory(m.team)].badge}`}>
                       {m.team}
                     </span>
                   )}
