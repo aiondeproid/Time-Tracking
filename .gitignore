@@ -38,6 +38,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# SQLite データベース（勤怠データ本体。コミットしないこと）
+/data/
+/backup/
+/logs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

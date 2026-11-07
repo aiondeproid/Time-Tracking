@@ -13,7 +13,7 @@ const MAX_BYTES = 2 * 1024 * 1024;
  * 名前リストのファイル取り込み。`mode=preview` で計画（追加 n / 更新 m /
  * スキップ k）を返し、`mode=commit` で反映する。commit も毎回ファイルを
  * 解析し直すので、プレビュー結果の改ざんは効かない。
- * ログイン必須。外周はサイト共通合言葉ゲート。
+ * ログイン必須。
  */
 export async function POST(request: Request) {
   if (!(await getSessionUser())) {

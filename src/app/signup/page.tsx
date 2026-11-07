@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { getSessionUser } from "@/lib/auth";
-import { safeNextPath } from "@/lib/gate";
+import { safeNextPath } from "@/lib/safe-next";
 import { isSignupEnabled } from "@/lib/signup-code";
 
 import { SignupForm } from "./signup-form";

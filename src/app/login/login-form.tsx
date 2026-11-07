@@ -17,11 +17,11 @@ export function LoginForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        メールアドレス
+        ログイン ID
         <input
-          name="email"
-          type="email"
-          autoComplete="email"
+          name="loginId"
+          type="text"
+          autoComplete="username"
           autoFocus
           required
           className={inputClass}

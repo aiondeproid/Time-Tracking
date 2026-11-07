@@ -17,15 +17,16 @@ export function SignupForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        メールアドレス
+        ログイン ID
         <input
-          name="email"
-          type="email"
-          autoComplete="email"
+          name="loginId"
+          type="text"
+          autoComplete="username"
           autoFocus
           required
           className={inputClass}
         />
+        <span className="text-xs font-normal text-zinc-500">半角英数字と . _ - で 3〜32 文字</span>
       </label>
 
       <label className="flex flex-col gap-1 text-sm font-medium">

@@ -1,42 +1,37 @@
 import "server-only";
 
-import { createAnonServerClient } from "./supabase/server";
+import { getDb } from "./db";
 import type { Attendance, AttendanceWithMember, Member } from "./types";
+
+type MemberRow = Omit<Member, "active"> & { active: number };
+
+function toMember(row: MemberRow): Member {
+  return { ...row, active: row.active === 1 };
+}
+
+const MEMBER_ORDER = "ORDER BY sort_order ASC, name ASC";
 
 /** アクティブなメンバーを表示順で取得する（勤怠入力の名前選択用）。 */
 export async function fetchActiveMembers(): Promise<Member[]> {
-  const sb = createAnonServerClient();
-  const { data, error } = await sb
-    .from("members")
-    .select("*")
-    .eq("active", true)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-  if (error) throw new Error(`メンバーの取得に失敗しました: ${error.message}`);
-  return (data ?? []) as Member[];
+  const rows = getDb()
+    .prepare(`SELECT * FROM members WHERE active = 1 ${MEMBER_ORDER}`)
+    .all() as MemberRow[];
+  return rows.map(toMember);
 }
 
 /** 全メンバーを表示順で取得する（一覧・Excel 用。アーカイブ済みも含む）。 */
 export async function fetchAllMembers(): Promise<Member[]> {
-  const sb = createAnonServerClient();
-  const { data, error } = await sb
-    .from("members")
-    .select("*")
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-  if (error) throw new Error(`メンバーの取得に失敗しました: ${error.message}`);
-  return (data ?? []) as Member[];
+  const rows = getDb()
+    .prepare(`SELECT * FROM members ${MEMBER_ORDER}`)
+    .all() as MemberRow[];
+  return rows.map(toMember);
 }
 
 export async function fetchMemberById(id: string): Promise<Member | null> {
-  const sb = createAnonServerClient();
-  const { data, error } = await sb
-    .from("members")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(`メンバーの取得に失敗しました: ${error.message}`);
-  return (data as Member) ?? null;
+  const row = getDb()
+    .prepare("SELECT * FROM members WHERE id = ?")
+    .get(id) as MemberRow | undefined;
+  return row ? toMember(row) : null;
 }
 
 /**
@@ -49,21 +44,25 @@ export async function fetchInputRows(
   memberId: string,
   workDate: string,
 ): Promise<Attendance[]> {
-  const sb = createAnonServerClient();
-  const { data, error } = await sb
-    .from("attendance")
-    .select("*")
-    .eq("member_id", memberId)
-    .or(`work_date.eq.${workDate},clock_out_at.is.null`)
-    .order("work_date", { ascending: true })
-    .order("clock_in_at", { ascending: true });
-  if (error) throw new Error(`勤怠の取得に失敗しました: ${error.message}`);
-  return (data ?? []) as Attendance[];
+  return getDb()
+    .prepare(
+      `SELECT * FROM attendance
+        WHERE member_id = ?
+          AND (work_date = ? OR clock_out_at IS NULL)
+        ORDER BY work_date ASC, clock_in_at ASC`,
+    )
+    .all(memberId, workDate) as Attendance[];
 }
+
+type RangeRow = Attendance & {
+  m_id: string;
+  m_name: string;
+  m_sort_order: number;
+};
 
 /**
  * 勤怠一覧・Excel 用。勤務日が [from, to] の範囲にある勤怠を、メンバー情報を
- * 結合して取得する。並び順は 勤務日 → メンバーの表示順 → 出勤時刻。
+ * 結合して取得する。並び順は 勤務日 → メンバーの表示順 → 名前 → 出勤時刻。
  * memberId を渡すとそのメンバーに絞り込む（アーカイブ済みも表示対象）。
  */
 export async function fetchAttendanceRange(params: {
@@ -71,42 +70,32 @@ export async function fetchAttendanceRange(params: {
   to: string;
   memberId?: string | null;
 }): Promise<AttendanceWithMember[]> {
-  const sb = createAnonServerClient();
-  let query = sb
-    .from("attendance")
-    .select("*, member:members!inner(id, name, sort_order)")
-    .gte("work_date", params.from)
-    .lte("work_date", params.to);
-  if (params.memberId) query = query.eq("member_id", params.memberId);
+  const args: string[] = [params.from, params.to];
+  let memberFilter = "";
+  if (params.memberId) {
+    memberFilter = "AND a.member_id = ?";
+    args.push(params.memberId);
+  }
 
-  const { data, error } = await query;
-  if (error) throw new Error(`勤怠の取得に失敗しました: ${error.message}`);
+  const rows = getDb()
+    .prepare(
+      `SELECT a.*, m.id AS m_id, m.name AS m_name, m.sort_order AS m_sort_order
+         FROM attendance a
+         JOIN members m ON m.id = a.member_id
+        WHERE a.work_date >= ? AND a.work_date <= ? ${memberFilter}
+        ORDER BY a.work_date ASC, m.sort_order ASC, m.name ASC, a.clock_in_at ASC`,
+    )
+    .all(...args) as RangeRow[];
 
-  const rows = (data ?? []) as unknown as AttendanceWithMember[];
-  rows.sort((a, b) => {
-    if (a.work_date !== b.work_date) return a.work_date < b.work_date ? -1 : 1;
-    if (a.member.sort_order !== b.member.sort_order) {
-      return a.member.sort_order - b.member.sort_order;
-    }
-    if (a.member.name !== b.member.name) {
-      return a.member.name < b.member.name ? -1 : 1;
-    }
-    return a.clock_in_at < b.clock_in_at
-      ? -1
-      : a.clock_in_at > b.clock_in_at
-        ? 1
-        : 0;
-  });
-  return rows;
+  return rows.map(({ m_id, m_name, m_sort_order, ...a }) => ({
+    ...a,
+    member: { id: m_id, name: m_name, sort_order: m_sort_order },
+  }));
 }
 
 export async function fetchAttendanceById(id: string): Promise<Attendance | null> {
-  const sb = createAnonServerClient();
-  const { data, error } = await sb
-    .from("attendance")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw new Error(`勤怠の取得に失敗しました: ${error.message}`);
-  return (data as Attendance) ?? null;
+  const row = getDb()
+    .prepare("SELECT * FROM attendance WHERE id = ?")
+    .get(id) as Attendance | undefined;
+  return row ?? null;
 }

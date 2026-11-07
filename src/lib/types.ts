@@ -1,6 +1,7 @@
 /**
- * DB 行の型。`supabase/migrations/20260903000001_init.sql` のスキーマに対応。
- * 時刻カラムは timestamptz を ISO 文字列として受け取る。
+ * DB 行の型。`src/lib/db.ts` の SQLite スキーマに対応。
+ * 時刻カラムは UTC の ISO 文字列（`toISOString()` 形式）。
+ * SQLite の `active` は 0/1 で保存し、取得時に boolean へ変換する。
  */
 
 export type Member = {

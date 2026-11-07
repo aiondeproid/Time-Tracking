@@ -18,7 +18,7 @@ export type ActionState = { ok: boolean; error: string | null };
 const OK: ActionState = { ok: true, error: null };
 const fail = (error: string): ActionState => ({ ok: false, error });
 
-/** ログイン済みか（外周はサイト共通合言葉ゲート、ここはログイン必須）。 */
+/** ログイン済みか（「名前の管理」はログイン必須）。 */
 async function requireUser(): Promise<boolean> {
   return (await getSessionUser()) !== null;
 }

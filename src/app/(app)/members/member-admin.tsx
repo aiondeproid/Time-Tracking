@@ -19,10 +19,10 @@ const INITIAL: ActionState = { ok: false, error: null };
 
 export function MemberAdmin({
   members,
-  userEmail,
+  userName,
 }: {
   members: Member[];
-  userEmail: string | null;
+  userName: string;
 }) {
   const [addState, addAction, addPending] = useActionState(
     addMemberAction,
@@ -34,7 +34,7 @@ export function MemberAdmin({
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
         <span>
-          {userEmail ?? "ログイン中"} でログイン中（{activeCount} 名がアクティブ）。
+          {userName} でログイン中（{activeCount} 名がアクティブ）。
         </span>
         <form action={logoutAction}>
           <button

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { fetchAttendanceById } from "@/lib/attendance";
+import { getDb, newId, nowIso } from "@/lib/db";
 import {
   clockInSchema,
   clockOutSchema,
@@ -10,13 +11,16 @@ import {
   firstIssueMessage,
   updateAttendanceSchema,
 } from "@/lib/schemas";
-import { createAnonServerClient } from "@/lib/supabase/server";
 import { dateTimeInputToIso } from "@/lib/time";
 
 export type ActionState = { ok: boolean; error: string | null };
 
 const OK: ActionState = { ok: true, error: null };
 const fail = (error: string): ActionState => ({ ok: false, error });
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 function revalidate() {
   revalidatePath("/attendance");
@@ -41,15 +45,18 @@ export async function clockInAction(
   const clockInAt = dateTimeInputToIso(inDate, inTime);
   if (!clockInAt) return fail("出勤時刻が正しくありません");
 
-  const sb = createAnonServerClient();
-  const { error } = await sb.from("attendance").insert({
-    member_id: memberId,
-    work_date: workDate,
-    clock_in_at: clockInAt,
-    clock_out_at: null,
-    note,
-  });
-  if (error) return fail(`保存に失敗しました: ${error.message}`);
+  try {
+    const now = nowIso();
+    getDb()
+      .prepare(
+        `INSERT INTO attendance
+           (id, member_id, work_date, clock_in_at, clock_out_at, note, created_at, updated_at)
+         VALUES (?, ?, ?, ?, NULL, ?, ?, ?)`,
+      )
+      .run(newId(), memberId, workDate, clockInAt, note, now, now);
+  } catch (e) {
+    return fail(`保存に失敗しました: ${errorMessage(e)}`);
+  }
 
   revalidate();
   return OK;
@@ -77,12 +84,13 @@ export async function clockOutAction(
     return fail("退勤時刻は出勤時刻より後にしてください");
   }
 
-  const sb = createAnonServerClient();
-  const { error } = await sb
-    .from("attendance")
-    .update({ clock_out_at: clockOutAt })
-    .eq("id", id);
-  if (error) return fail(`保存に失敗しました: ${error.message}`);
+  try {
+    getDb()
+      .prepare("UPDATE attendance SET clock_out_at = ?, updated_at = ? WHERE id = ?")
+      .run(clockOutAt, nowIso(), id);
+  } catch (e) {
+    return fail(`保存に失敗しました: ${errorMessage(e)}`);
+  }
 
   revalidate();
   return OK;
@@ -121,17 +129,18 @@ export async function updateAttendanceAction(
     }
   }
 
-  const sb = createAnonServerClient();
-  const { error } = await sb
-    .from("attendance")
-    .update({
-      work_date: workDate,
-      clock_in_at: clockInAt,
-      clock_out_at: clockOutAt,
-      note,
-    })
-    .eq("id", id);
-  if (error) return fail(`保存に失敗しました: ${error.message}`);
+  try {
+    const result = getDb()
+      .prepare(
+        `UPDATE attendance
+            SET work_date = ?, clock_in_at = ?, clock_out_at = ?, note = ?, updated_at = ?
+          WHERE id = ?`,
+      )
+      .run(workDate, clockInAt, clockOutAt, note, nowIso(), id);
+    if (Number(result.changes) === 0) return fail("対象の記録が見つかりません");
+  } catch (e) {
+    return fail(`保存に失敗しました: ${errorMessage(e)}`);
+  }
 
   revalidate();
   return OK;
@@ -145,9 +154,11 @@ export async function deleteAttendanceAction(
   const parsed = deleteAttendanceSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return fail(firstIssueMessage(parsed.error));
 
-  const sb = createAnonServerClient();
-  const { error } = await sb.from("attendance").delete().eq("id", parsed.data.id);
-  if (error) return fail(`削除に失敗しました: ${error.message}`);
+  try {
+    getDb().prepare("DELETE FROM attendance WHERE id = ?").run(parsed.data.id);
+  } catch (e) {
+    return fail(`削除に失敗しました: ${errorMessage(e)}`);
+  }
 
   revalidate();
   return OK;
